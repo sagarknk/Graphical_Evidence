@@ -19,7 +19,7 @@ parfor skilling_iter = 1:25
     
     prior_samples = zeros(q,q,N);
     for sample_index = 1:N
-        prior_samples(:,:,sample_index) = wishrnd(eye(q), alpha);
+        prior_samples(:,:,sample_index) = wishrnd(scale_matrix, alpha, chol_factor);
     end
     
     likelihood_vector = zeros(1,N);
@@ -59,7 +59,7 @@ parfor skilling_iter = 1:25
         
         while new_greater_likelihood < lowest_likelihood
             
-            temp_omega_sample = wishrnd(eye(q), alpha);
+            temp_omega_sample = wishrnd(scale_matrix, alpha, chol_factor);
             
             new_greater_likelihood = sum(log(mvnpdf(xx,0, inv(temp_omega_sample))));
             
