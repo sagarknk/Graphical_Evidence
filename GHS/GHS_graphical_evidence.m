@@ -6,7 +6,7 @@ q = 5;
 n = 2*q;
 lambda = 5/q;
 
-%%% In the codes, we use the hirearchy \omega_{ij} ~ N(0,\tau_{ij}^2/\lambda^2)
+%%% In the codes, we use the hirearchy \omega_{ij} ~ N(0,\tau_{ij}^2\lambda^2)
 %%% followed by the Inverse-gamma scale mixture of half-Cauchy densities
 %%% (proposed by Makalic and Schmidt, 2016) for the half-Cauchy prior on \tau_{ij}.
 %%% Hence the value of \lambda = p/5 mentioned in the paper, is equivalent to 5/p in the code
@@ -211,7 +211,7 @@ parfor num_rand_orders = 1:total_num_rand_orders
                 
                 post_mean_tau_sq_save = mean(tau_sq_save,3);
                 omega_save_2ndGibbs = ...
-                    GHS_last_col_fixed(S,n,burnin, nmc,lambda, fixed_last_col, ...
+                    GHS_last_col_fixed_new(S,n,burnin, nmc,lambda, fixed_last_col, ...
                     Matrix_2be_added_Gibbs, post_mean_omega, post_mean_tau_sq_save);
                 
                 post_mean_omega_22_2ndGibbs = mean(omega_save_2ndGibbs(q_reduced, q_reduced, :));
@@ -343,49 +343,32 @@ parfor num_rand_orders = 1:total_num_rand_orders
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
                 temp_abs_lower_tri_est_mat = abs(Reconstructed_matrix(tril(true(size(Reconstructed_matrix)),-1)));
-                
-                log_dawson_vals = zeros(1,0.5*q*(q-1));
+                temp_horseshoe_vals = zeros(1,0.5*q*(q-1));
                 
                 for lower_tri_iter = 1:(0.5*q*(q-1))
                     
-                    temp_rate = temp_abs_lower_tri_est_mat(lower_tri_iter,1)/lambda;
-                    temp_mean = 1/temp_rate;
+                    rand_half_cauchy_vals = tan(rand([1e5,1])*0.5*pi);
                     
-                    temp_rand_sample = exprnd(temp_mean, [1,1e4]); %%% u
-                    temp_rand_sample = temp_rand_sample/sqrt(2); %%% u/sqrt(2)
+                    horseshoe_vals = (1/lambda).*(1./rand_half_cauchy_vals).*(1/sqrt(2*pi)).*...
+                        exp(-temp_abs_lower_tri_est_mat(lower_tri_iter,1)^2.*(1/lambda^2).*(1./rand_half_cauchy_vals).*(1./rand_half_cauchy_vals));
                     
-                    %%% As calculating values of Dawson intergal function
-                    %%% is an time extensive operation, we use the following
-                    %%% approxmiation which has a MSE of 10^-8 when compared with
-                    %%% the values given by dawson() function of matlab
-                    
-                    %%% Approximation used can be accesed from:
-                    %%% https://www.sciencedirect.com/science/article/abs/pii/S009630039600330X
-                    
-                    temp_rand_sample_pow_2 = temp_rand_sample.^2;
-                    temp_rand_sample_pow_4 = temp_rand_sample.^4;
-                    temp_rand_sample_pow_6 = temp_rand_sample.^6;
-                    temp_rand_sample_pow_8 = temp_rand_sample.^8;
-                    
-                    temp_dawson_vals_num = 1+ (33/232)*temp_rand_sample_pow_2+...
-                        (19/632)*temp_rand_sample_pow_4+...
-                        (23/1471)*temp_rand_sample_pow_6;
-                    
-                    temp_dawson_vals_denom = 1+(517/646)*temp_rand_sample_pow_2+...
-                        (58/173)*temp_rand_sample_pow_4+...
-                        (11/262)*temp_rand_sample_pow_6+...
-                        (46/1471)*temp_rand_sample_pow_8;
-                    
-                    temp_dawson_vals = temp_rand_sample.*(temp_dawson_vals_num./...
-                        temp_dawson_vals_denom);
-                    
-                    log_dawson_vals(1,lower_tri_iter) = log(mean(temp_dawson_vals));
+                    temp_horseshoe_vals(1, lower_tri_iter) = log(mean(horseshoe_vals));
                 end
                 
                 
-                direct_eval_log_prior_density(1,num_rand_orders) = 0.5*(q*(q-1))*(log(2)-1.5*log(pi))...
-                    + sum(log_dawson_vals) -sum(log(temp_abs_lower_tri_est_mat))...
+                if q==2
+                    
+                    direct_eval_log_prior_density(1,num_rand_orders) = -log(0.43) + sum(temp_horseshoe_vals)...
                     + q*log(1/(2*lambda)) - (1/(2*lambda))*sum(diag(Reconstructed_matrix));
+                
+                else
+                    
+                    direct_eval_log_prior_density(1,num_rand_orders) = sum(temp_horseshoe_vals)...
+                    + q*log(1/(2*lambda)) - (1/(2*lambda))*sum(diag(Reconstructed_matrix));
+                
+                end
+                
+                
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%% The above is equal to the sum of all III_j terms
@@ -409,16 +392,17 @@ else
     %%% print nothing 
 end
 
-temp_harmonic_vec = Harmonic_mean_est_vec(Harmonic_mean_est_vec~=0);
-mean(temp_harmonic_vec) %%% prints the mean of Harmonic estimate
-std(temp_harmonic_vec)  %%% prints the std of Harmonic estimate
-
 temp_our_est = sum(Matrix_of_log_ratio_likelihoods,2) ;
 temp_our_est = temp_our_est(temp_our_est~=0);
 mean(temp_our_est + direct_eval_log_prior_density(direct_eval_log_prior_density~=0)')
 %%% Above is the the mean of log marginal computed for 25 different permutations
 std(temp_our_est + direct_eval_log_prior_density(direct_eval_log_prior_density~=0)')
 %%% Above is the the mean of log marginal computed for 25 different permutations
+
+temp_harmonic_vec = Harmonic_mean_est_vec(Harmonic_mean_est_vec~=0);
+mean(temp_harmonic_vec) %%% prints the mean of Harmonic estimate
+std(temp_harmonic_vec)  %%% prints the std of Harmonic estimate
+
 
 
 
