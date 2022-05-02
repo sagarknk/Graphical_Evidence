@@ -5,16 +5,17 @@ rng(123456789)
 q = 5;
 n = 2*q;
 delta = 1;
+banded_param =1;
 
-file_name = ['./G_mat/G_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'.csv'];
+file_name = ['./G_mat/G_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'];
 G_mat_adj =  csvread(file_name);
 
-file_name = ['./X_mat/X_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'.csv'];
+file_name = ['./X_mat/X_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'];
 xx =  csvread(file_name);
 
 S = xx' * xx;
 
-file_name = ['./Scale_matrix/Scale_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'.csv'];
+file_name = ['./Scale_matrix/Scale_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'];
 scale_matrix = csvread(file_name);
 
 log_marginal_AIS = zeros(1,100);
