@@ -1,6 +1,6 @@
 # Graphical_Evidence
 
-This repository contains code to implement our proposed technique to compute marginal likelihood in Gaussian graphical models. 
+This repository contains code to implement our proposed technique to compute marginal likelihood in Gaussian graphical models [1]. 
 
 Our proposed technique works for a broad class of priors. Specifically, the requirements are: (a) the priors on the diagonal terms 
 on the precision matrix can be written as gamma or scale mixtures of gamma random variables and (b) those on the off-diagonal terms 
@@ -17,3 +17,7 @@ the estimates obtained by annealed importance sampling (Neal,2001), nested sampl
 
 There are four directories in this repository, one for each prior (BGL, GHS, G-Wishart and Wishart). More detailed instructions are within the README.txt files
 of the respective directories. 
+
+References:
+
+[1] Bhadra, A., Sagar, K., Banerjee, S. and Datta, J. Graphical Evidence. (submitted).[https://arxiv.org/abs/2205.01016]
