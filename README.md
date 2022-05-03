@@ -20,4 +20,4 @@ of the respective directories.
 
 References:
 
-[1] Bhadra, A., Sagar, K., Banerjee, S. and Datta, J. Graphical Evidence. (submitted).[https://arxiv.org/abs/2205.01016]
+[1] Bhadra, A., Sagar, K., Banerjee, S. and Datta, J. Graphical Evidence. (submitted). [https://arxiv.org/abs/2205.01016]
