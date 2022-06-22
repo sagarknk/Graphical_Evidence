@@ -1,4 +1,4 @@
-# Graphical_Evidence
+# Graphical Evidence
 
 This repository contains code to implement our proposed technique [1] to compute marginal likelihood in Gaussian graphical models under four different priors on the precision matirx:
 1. Bayesian graphical lasso (BGL)
