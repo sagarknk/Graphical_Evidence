@@ -1,15 +1,46 @@
-This folder consists of files required to compute the log of marginal likelihood under the G-Wishart prior. 
+This folder consists of files required to compute the log of marginal likelihood under the G-Wishart prior (when the precision matrix is banded). 
 
-1. G_Wishart_graphical_evidence.m --> This matlab file implements our proposed procedure according to the simulation settings mentioned in the paper. Before generating the data, we fix the adjacency matrix "G" as a banded matrix (G = ((g_{ij})) where g_{ij}=1 if |i-j|<=k, 0 otherwise. 'k' is called the banded-parameter; for example if k=1, G is tri-diagona) and store it in the folder G_mat. We fix the scale matrix "V" to a diagonal matrix with "p" in the diagonals and store it in the folder Scale_matrix. To generate the true precision matrix, the code calls "prior_sampling.m". With the returned output, it generates the n x p data matrix y_1,...,y_p and stores it in the folder X_mat. Similarly, the sample covariance matrix is stored in the folder S_mat. The 100 different permuations of y_1,...,y_p are stored in the folder Matrix_of_random_orders. Data from all these folders is later read by AKM.R, which is explained further in #4 below. Coming to the estimation of the terms I, III and IV, the code internally calls the function "G_Wishart_Hao_wang.m" to run the unrestricted MCMC sampler in the evaluation of the term IV_j. Next, it calls "G_Wishart_last_col_fixed.m" to run the restricted MCMC sampler in the evaluation of the term IV_j. Terms I_j and III_j are evaluated on the fly, at every step of the telescoping sum. 
+1. G_Wishart_graphical_evidence.m
+### Description: This matlab file implements our proposed procedure to compute log-marginal under the G-Wishart prior, according to the simulation settings mentioned in the paper. 
+### Usage:
+%%% set seed, q, n, $\delta$.
+%%% set the adjacency matrix G (G_mat_adj) as a banded matrix.
+%%% G = ((g_{ij})) where g_{ij}=1 if |i-j|<=k, 0 otherwise. 'k' is called the banded-parameter; for example if k=1, G is tri-diagonal and so is $\Omega$. G is stored in the folder G_mat.
+%%% set the scale matrix V (Scale_matrix). It is stored in the folder Scale_matrix.
+%%% True precision matrix is generated from the function call prior_sampling(q,100,100, G_mat_adj, scale_matrix, delta, 0).
+%%% n x q data matrix is generated and stored in the variable "xx" and sample covariance matrix, S = xx'*xx.
+%%% xx and S are stored in respective folders, which will be used to compute log-marginal from competing procedures.
+%%% set burnin and nmc (number of saved mc samples). Following this, 100 random permutations of 1:q are generated and stored in Matrix_of_rand_order.
+%%% log-marginal is computed in parallel for all the random permutations, using the parallel-for "parfor".
+%%% Function calls to "G_Wishart_Hao_wang.m", "G_Wishart_last_col_fixed.m" are made to run the required Gibbs samplers for the procedure.
+%%% Function calls to "logmvgamma.m" are made to compute the log of multivariate gamma function when required. 
+%%% Mean and sd of the log-marginal from HM estimate and our procedure are printed at the end of computation. 
 
-One added advantage of G being banded, is that the marginal f(y) is available in a closed form. It can be written as a product of normalizing constants of Wishart distribution corresponding to it's cliques and seperators. The logarithm of f(y) is calculated in the file G_Wishart_graphical_evidence.m and is stored in the variable "log_marginal_true". 
+2. Skilling_method.m
+### Description: This matlab file estimates the log of marginal likelihood by implementing the Nested sampling approach proposed by Skilling, 2006. 
+### Usage:
+%%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
+%%% Reads the n x q data matrix, adjacency matrix and the scale matrix stored after data generation in G_Wishart_graphical_evidence.m
+%%% Function calls are made to "prior_sampling_for_Neal_and_skilling.m" to propose $\Omega$. 
+%%% log-marginal is estimated for 100 times in parallel, using the parallel-for "parfor".
+%%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
 
-2. Skilling_method.m --> This matlab file estimates the log of marginal likelihood by implementing
-the Nested sampling approach proposed by Skilling, 2006. Internally, this calls the function 
-"prior_sampling_for_Neal_and_skilling.m" to propose updates of \Omega. 
 
-3. AIS_Neal.m --> This matlab file estimates the log of marginal likelihood by implementing
-the Annealed importance sampling proposed by Neal, 2001. Internally, this calls the function 
-"prior_sampling_for_Neal_and_skilling.m" to propose updates of \Omega. 
+3. AIS_Neal.m
+### Description: This matlab file estimates the log of marginal likelihood by implementing the Annealed importance sampling proposed by Neal, 2001. 
+### Usage:
+%%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
+%%% Reads the n x q data matrix, adjacency matrix and the scale matrix stored after data generation in G_Wishart_graphical_evidence.m
+%%% Function calls are made to "prior_sampling_for_Neal_and_skilling.m" to propose $\Omega$. 
+%%% log-marginal is estimated for 100 times in parallel, using the parallel-for "parfor".
+%%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
 
-4. AKM.R --> This R file computes the log of marginal likelihood using the method proposed by Atay-Kayis and Massam, 2005 and implemented in a R package, "BRgraph" by Mohammadi and Wit, 2015. 
+4. AKM.R
+### Description: This R file computes the log of marginal likelihood using the method proposed by Atay-Kayis and Massam, 2005 and implemented in a R package, "BDgraph" by Mohammadi and Wit, 2015. 
+### Usage:
+%%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
+%%% Installs the R package "BDgraph" if the R package isn't installed. 
+%%% Reads the scale matrix, adjacency matrix, sample covariance matrix and the 100 random permutations stored after data generation in G_Wishart_graphical_evidence.m.
+%%% Function calls are made to "gnorm()", to compute the log-marginal for each of the 100 stored permutations. 
+%%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
+
