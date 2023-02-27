@@ -10,6 +10,7 @@ This folder consists of files required to compute the log of marginal likelihood
 %%% If q=2, exact log-marginal is computed. Following this, 25 random permutations of 1:q are generated and 
 %%% log-marginal is computed in parallel for all permutations, using the parallel-for "parfor".
 %%% Function calls to "BGL_Hao_wang.m", "BGL_last_col_fixed.m" are made to run the required Gibbs samplers for the procedure.
+%%% Function calls to "gigrnd.m" to sample inverse-Gaussian latent parameters ($\tau_{ij}$), which is a special case of sampling from Generalized Inverse-Gaussian (GIG) - gigrnd
 %%% Mean and sd of the log-marginal from HM estimate and our procedure are printed at the end of computation. 
 
 2. Skilling_method.m

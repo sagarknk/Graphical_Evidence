@@ -29,7 +29,7 @@ TAU(1:p,1:p) = 1;
 for iter = 1:(burnin+nmc)
     
     %if(mod(iter,100)==0)
-        %fprintf('iter = %d \n',iter);
+    %    fprintf('iter = %d \n',iter);
     %end
     
     %%% Gibb's sampler for Omega with Hao-Wang's decomposition
@@ -69,7 +69,7 @@ for iter = 1:(burnin+nmc)
         
         mu_prime = sqrt(lambda^2./(omega_12.*omega_12));
         lambda_prime = lambda^2;
-        
+         
         %%% sampler for inverse-Gaussian from wiki 
         %%% https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
         
@@ -98,6 +98,20 @@ for iter = 1:(burnin+nmc)
         
         tau_12 = 1./u_12;
         
+        %%% sampler for inverse-Gaussian from Generalized Inverse-Gaussian
+        %%% This sampler is more efficient and stable in data generation
+        %%% for dimensions p>30. So, while computing marginal likelihood
+        %%% for dimensions p>30, comment lines 76--99 and uncomment lines
+        %%% 107--112
+
+%         a_gig_tau = lambda_prime./(mu_prime.^2);
+%         b_gig_tau = lambda_prime;
+%         u_12 = zeros(p-1,1);
+%         for tau_idx = 1:p-1
+%             u_12(tau_idx,1) = gigrnd(-1/2,a_gig_tau(tau_idx,1), b_gig_tau,1);
+%         end
+%         tau_12 = 1./u_12;
+
         TAU(i,ind_noi) = tau_12; 
         TAU(ind_noi,i) = tau_12;
     end

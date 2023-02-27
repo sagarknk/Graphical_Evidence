@@ -4,15 +4,17 @@
 %%% The n x p data matrix "xx" is the input to this procedure
 rng(123456789)
 q = 5;
-n = 2*q;
-lambda = q/5;
+n = 10;
+lambda = 1;
 
 xx= csvread(['./X_mat/X_mat_q_',num2str(q),'_n_',num2str(n),'_lambda_',num2str(lambda),'.csv']);
 
 log_marginal_skilling = zeros(1,25);
+time_taken = zeros(1,25);
 
 parfor skilling_iter = 1:25
-
+    
+    tic;
     N = 5e3;
     burnin = 1e3;
     nmc = 5e3;
@@ -44,7 +46,7 @@ parfor skilling_iter = 1:25
     skilling_likelihood_vector = zeros(1,J);
     
     for i = 1:J
-        
+        fprintf("%d\n",i);
         [lowest_likelihood, rank_low_ll] = min(likelihood_vector);
         
         skilling_likelihood_vector(1,i) = lowest_likelihood;
@@ -84,25 +86,10 @@ parfor skilling_iter = 1:25
     
     log_marginal_skilling(1,skilling_iter) = log(Z);
     fprintf("%d skilling_iter is done\n", skilling_iter);
+    time_taken(1, skilling_iter) = toc;
 end
 
 mean(log_marginal_skilling(log_marginal_skilling~=0))
 std(log_marginal_skilling(log_marginal_skilling~=0))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+mean(time_taken)

@@ -3,11 +3,10 @@
 
 rng(123456789)
 q = 5;
-n = 2*q;
-
+n = 10;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% degree of freedom for wishart
-alpha = q+ceil(0.3*q); 
+alpha = 7;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_matrix = eye(q);
 for scale_col = 1:(q-1)
@@ -71,10 +70,11 @@ burnin_MC = 1e3;
 num_save_MC = 5e3;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+our_time = zeros(1, total_num_rand_orders);
+HM_time = zeros(1, total_num_rand_orders);
 
-
-for num_rand_orders = 1 :total_num_rand_orders
-    
+for num_rand_orders = 1:total_num_rand_orders
+   
     random_order = Matrix_of_random_orders(num_rand_orders,:);
     
     fprintf("%dth random order is being computed \n", num_rand_orders);
@@ -85,10 +85,12 @@ for num_rand_orders = 1 :total_num_rand_orders
     %%%% every j from 1 to p. 
     
     Harmonic_mean_est = zeros(1,1);
+    temp_HM_time = zeros(1,1);
     %%% harmonic mean estimate for this given permutation. Initialised to a
     %%% zero vector of dimensions 1 x 1. It could have been a scalar zero.
     %%% But just to make a way around MATLAB's indexing rules and hence
     %%% make parfor work. 
+    tStart = tic;
     
     parfor num_Wishart = 1:(q-1)
         
@@ -99,42 +101,53 @@ for num_rand_orders = 1 :total_num_rand_orders
         [~,q_reduced] = size(reduced_data_xx);
         S = reduced_data_xx'*reduced_data_xx;
         
-        %%% Run the unrestricted sampler to get samples, which will
-        %%% be used to approximate the Normal density in the
-        %%% evaluation of the term IV
-                
-        omega_save = ...
-            Wishart_Hao_wang(S,n,burnin_MC,num_save_MC,alpha + (1-num_Wishart));
-        
-        post_mean_omega = mean(omega_save,3);
-        fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%%%% computing harmonic estimate when num_BGL = 1 or when the full
-        %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
         if num_Wishart == 1
+
+            tic;
+            %%% Run the unrestricted sampler to get samples, which will
+            %%% be used to approximate the Normal density in the
+            %%% evaluation of the term IV
+
+            omega_save = ...
+                Wishart_Hao_wang(S,n,burnin_MC,num_save_MC,alpha + (1-num_Wishart));
+
+            post_mean_omega = mean(omega_save,3);
+            fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
+
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%% computing harmonic estimate when num_BGL = 1 or when the full
+            %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             temp_normal_log_likli_at_posterior_samples = zeros(1,num_save_MC);
             for post_sample = 1:num_save_MC
                 temp_normal_log_likli_at_posterior_samples(post_sample) = ...
                     sum(log((mvnpdf(reduced_data_xx,0, inv(omega_save(:,:,post_sample))))));
             end
-            
+
             temp_numerical_1 = -temp_normal_log_likli_at_posterior_samples - ...
                 median(-temp_normal_log_likli_at_posterior_samples);
-            
+
             mean_temp_numerical_1 = mean(exp(temp_numerical_1));
-            
+
             Harmonic_mean_est(num_Wishart) = -median(-temp_normal_log_likli_at_posterior_samples) ...
                 -log(mean_temp_numerical_1);
-  
+
+            temp_HM_time(num_Wishart) = toc;
+
         else
-            % do nothing
+            %%% Run the unrestricted sampler to get samples, which will
+            %%% be used to approximate the Normal density in the
+            %%% evaluation of the term IV
+
+            omega_save = ...
+                Wishart_Hao_wang(S,n,burnin_MC,num_save_MC,alpha + (1-num_Wishart));
+
+            post_mean_omega = mean(omega_save,3);
+            fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
         end
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+
         column_number = q - num_Wishart + 1;
         %%% Also to be noted that column_number = q_reduced
 
@@ -254,8 +267,9 @@ for num_rand_orders = 1 :total_num_rand_orders
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
-    
-    
+    our_time(1, num_rand_orders) =  toc(tStart);
+    HM_time(1, num_rand_orders) = temp_HM_time;
+
     Harmonic_mean_est_vec(num_rand_orders) = Harmonic_mean_est;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -311,3 +325,6 @@ mean(Harmonic_mean_est_vec) + (n/2)*log(det(scale_matrix)) %#ok<NOPTS> %%% The m
 %%%% for 25 different permutations
 std(Harmonic_mean_est_vec) %%% The std of harmonic mean estimates 
 %%%% for 25 different permutations
+
+mean(our_time)
+mean(HM_time)

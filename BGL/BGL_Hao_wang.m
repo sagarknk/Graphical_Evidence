@@ -39,7 +39,6 @@ for iter = 1:(burnin+nmc)
     %end
     
     %%% Gibb's sampler for Omega with Hao-Wang's decomposition
-    
     for i = 1:p
         ind_noi = ind_noi_all(:,i);
         
@@ -85,31 +84,43 @@ for iter = 1:(burnin+nmc)
         %%% sampler for inverse-Gaussian from wiki
         %%% https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
         
-        rand_nu = randn(p-1,1);
-        rand_y = rand_nu.*rand_nu;
-        rand_x = mu_prime + (mu_prime.*mu_prime.*rand_y)./(2*lambda_prime)...
-            -(mu_prime./(2*lambda_prime)).*sqrt(4*lambda_prime.*mu_prime.*rand_y ...
-            + (mu_prime.*rand_y).*(mu_prime.*rand_y));
-        rand_z = rand(p-1,1);
+%         rand_nu = randn(p-1,1);
+%         rand_y = rand_nu.*rand_nu;
+%         rand_x = mu_prime + (mu_prime.*mu_prime.*rand_y)./(2*lambda_prime)...
+%             -(mu_prime./(2*lambda_prime)).*sqrt(4*lambda_prime.*mu_prime.*rand_y ...
+%             + (mu_prime.*rand_y).*(mu_prime.*rand_y));
+%         rand_z = rand(p-1,1);
+%         
+%         temp_logical = (rand_z <= (mu_prime)./(mu_prime + rand_x));
+%         
+%         %%% u_12 = rand_x.*(temp_logical) + (1-temp_logical).*(mu_prime.*mu_prime./rand_x);
+%         %%% the above is buggy because there will be cases when rand_x is
+%         %%% close to zero and temp_logical is 1. Then it results in 0 +
+%         %%% 0*Inf which is NaN. Hence changing to for loop. 
+%         
+%         u_12 = rand_x;
+%         u_12_else = (mu_prime.*mu_prime./rand_x);
+%         
+%         for temp_u_12_index = 1:length(u_12)
+%             if temp_logical(temp_u_12_index,1) == 0
+%                 u_12(temp_u_12_index,1) = u_12_else(temp_u_12_index,1);
+%             end
+%         end
+%         
+%         tau_12 = 1./u_12;
         
-        temp_logical = (rand_z <= (mu_prime)./(mu_prime + rand_x));
-        
-        %%% u_12 = rand_x.*(temp_logical) + (1-temp_logical).*(mu_prime.*mu_prime./rand_x);
-        %%% the above is buggy because there will be cases when rand_x is
-        %%% close to zero and temp_logical is 1. Then it results in 0 +
-        %%% 0*Inf which is NaN. Hence changing to for loop. 
-        
-        u_12 = rand_x;
-        u_12_else = (mu_prime.*mu_prime./rand_x);
-        
-        for temp_u_12_index = 1:length(u_12)
-            if temp_logical(temp_u_12_index,1) == 0
-                u_12(temp_u_12_index,1) = u_12_else(temp_u_12_index,1);
-            end
+        %%% sampler for inverse-Gaussian from Generalized Inverse-Gaussian
+        %%% This sampler is more efficient and stable than the sampler
+        %%% commented above
+
+        a_gig_tau = lambda_prime./(mu_prime.^2);
+        b_gig_tau = lambda_prime;
+        u_12 = zeros(p-1,1);
+        for tau_idx = 1:p-1
+            u_12(tau_idx,1) = gigrnd(-1/2,a_gig_tau(tau_idx,1), b_gig_tau,1);
         end
-        
         tau_12 = 1./u_12;
-        
+
         TAU(i,ind_noi) = tau_12;
         TAU(ind_noi,i) = tau_12;
     end

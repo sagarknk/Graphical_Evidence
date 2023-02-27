@@ -4,14 +4,16 @@
 %%% The sample covariance matrix "S" is the input to this procedure 
 rng(123456789)
 q = 5;
-n = 2*q;
-lambda = q/5;
+n = 10;
+lambda = 1;
 
 S= csvread(['./S_mat/S_mat_q_',num2str(q),'_n_',num2str(n),'_lambda_',num2str(lambda),'.csv']);
 log_marginal_AIS = zeros(1,25);
+time_taken = zeros(1,25);
 
 parfor neal_iter = 1:25
     
+    tic;
     log_weight_step_1 = 0; %%% because Z_1 = 1
     delta = 0.01; %% step size for sequence of densities
     
@@ -74,9 +76,10 @@ parfor neal_iter = 1:25
     catch
         fprintf("Skipping %d sampler\n", neal_iter);
     end
-    
+    time_taken(1, neal_iter) = toc;
 end
 
 mean(log_marginal_AIS(log_marginal_AIS~=0))
 std(log_marginal_AIS(log_marginal_AIS~=0))
 
+mean(time_taken)

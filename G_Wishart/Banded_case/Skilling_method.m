@@ -4,7 +4,7 @@
 rng(123456789) % set accordingly (if running in diff. workspace)
 q = 5;
 n = 2*q;
-delta = 1;
+delta = 2;
 banded_param=1;
 
 file_name = ['./G_mat/G_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'];
@@ -18,13 +18,17 @@ xx =  csvread(file_name);
 file_name = ['./Scale_matrix/Scale_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'];
 scale_matrix = csvread(file_name);
 
-log_marginal_skilling = zeros(1,100);
+log_marginal_skilling = zeros(1,25);
+time_taken = zeros(1,25);
 
-parfor skilling_iter = 1:100
+parfor skilling_iter = 1:25
+    
+    tic;
 
-    N = 5e3;
-    burnin = 1e3;
-    nmc = 5e3;
+    N = 1e4;
+    burnin = 2e3;
+    nmc = 1e4;
+
     [~,prior_samples] = prior_sampling(q, burnin,nmc, G_mat_adj, ...
         scale_matrix, delta, skilling_iter);
     
@@ -42,8 +46,8 @@ parfor skilling_iter = 1:100
     end
     
     N = length(likelihood_vector);
-    
-    J = 5e3;
+
+    J = 1e4;
     Z = 0;
     X =zeros(1,J+1);
     W = zeros(1,J);
@@ -91,9 +95,13 @@ parfor skilling_iter = 1:100
     
     log_marginal_skilling(1,skilling_iter) = log(Z);
     fprintf("%d skilling_iter is done\n", skilling_iter);
+
+    time_taken(1, skilling_iter) = toc;
 end
 
 temp_skilling = rmoutliers(log_marginal_skilling);
 mean(temp_skilling)
 std(temp_skilling)
+
+mean(time_taken)
 

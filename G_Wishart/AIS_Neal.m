@@ -4,7 +4,7 @@
 rng(123456789) 
 q = 5;
 n = 2*q;
-delta = 1;
+delta = 2;
 
 file_name = ['./G_mat/G_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'.csv'];
 G_mat_adj =  csvread(file_name);
@@ -17,14 +17,17 @@ S = xx' * xx;
 file_name = ['./Scale_matrix/Scale_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'.csv'];
 scale_matrix = csvread(file_name);
 
-log_marginal_AIS = zeros(1,100);
+log_marginal_AIS = zeros(1,25);
+time_taken = zeros(1, 25);
 
-parfor neal_iter = 1:100
-
+parfor neal_iter = 1:25
+    
+    tic;
     log_weight_step_1 = 0; %%% because Z_1 = 1
     delta = 0.01; %% step size for sequence of densities
     
-    N = 5e3; %%% Total samples
+    N = 1e4; %%% Total samples
+
     T = 1e2+1; %%%% Total intermediatary steps
         
     log_weights_samples = zeros(1,N);
@@ -79,9 +82,13 @@ parfor neal_iter = 1:100
     catch
         fprintf("Skipping %d sampler\n", neal_iter);
     end
-
+    
+    time_taken(1, neal_iter) =   toc;
+    
 end
 
 temp_AIS_estimate = rmoutliers(log_marginal_AIS);
 mean(temp_AIS_estimate)
 std(temp_AIS_estimate)
+
+mean(time_taken)

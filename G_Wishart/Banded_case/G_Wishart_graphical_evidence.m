@@ -1,7 +1,10 @@
+%%%% Setting seed and dimensions of the precision matrix ('p' in the paper
+%%%% which is 'q' here
+
 rng(123456789)
 q = 5;
 n = 2*q;
-delta = 1; %%% in paper delta is alpha 
+delta = 2; %%% in paper delta is alpha 
 
 %%%% Creating a banded G with \omega_{ij}~=0 if |i-j|<= banded_param
 
@@ -25,10 +28,6 @@ if banded_param >=2
     end
 end
 
-
-%G_mat_adj = 0.5*(G_mat_adj + G_mat_adj');
-%temp_sum_G_adj = sum(G_mat_adj,2);
-%temp_sum_G_adj = temp_sum_G_adj - 1;
 
 csvwrite(['./G_mat/G_mat_q_',num2str(q),'_n_',num2str(n),'_delta_',num2str(delta),'_banded_param_',num2str(banded_param),'.csv'], G_mat_adj);
 
@@ -133,11 +132,11 @@ log_posterior_norm_constant = log_num_posterior_norm_const - log_denom_posterior
 log_marginal_true = -(n*q*0.5)*log(2*pi)+log_posterior_norm_constant - log_prior_norm_constant;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-burnin = 5e3;
+burnin = 2e3;
 nmc = 1e4;
 
 %%% total_num_rand_orders permutations of vector 1:q
-total_num_rand_orders = 100;
+total_num_rand_orders = 25;
 Matrix_of_random_orders = zeros(total_num_rand_orders, q);
 for num_rand_orders = 1:total_num_rand_orders
     Matrix_of_random_orders(num_rand_orders,:) = randperm(q);
@@ -153,9 +152,12 @@ log_prior_density_scalar_gamma = zeros(total_num_rand_orders, q);
 log_prior_density_vector_normal = zeros(total_num_rand_orders, q);
 
 Harmonic_mean_est_vec = zeros(1, total_num_rand_orders);
+our_time = zeros(1, total_num_rand_orders);
+HM_time = zeros(1, total_num_rand_orders);
 
 parfor num_rand_orders = 1:total_num_rand_orders
    
+    tStart = tic;
     random_order = Matrix_of_random_orders(num_rand_orders,:);
     
     fprintf("%dth random order is being computed \n", num_rand_orders);    
@@ -188,42 +190,54 @@ parfor num_rand_orders = 1:total_num_rand_orders
             G_mat_adj_this_order_reduced = G_mat_adj_this_order(1:q_reduced, 1:q_reduced);
             scale_matrix_this_order_reduced = scale_matrix_this_order(1:q_reduced, 1:q_reduced);
             
-            %%% Run the unrestricted sampler to get samples, which will
-            %%% be used to approximate the Normal density in the
-            %%% evaluation of the term IV_j
-            
-            omega_save = ...
-                 G_wishart_Hao_wang(S,n,burnin,nmc,delta, ...
-                scale_matrix_this_order_reduced,  G_mat_adj_this_order_reduced, Matrix_2be_added_Gibbs,...
-                start_point_first_gibbs);
-            
-            post_mean_omega = mean(omega_save,3);
-            fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
-
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%% computing harmonic estimate when num_BGL = 1 or when the full
-            %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
             if num_G_Wishart == 1
+
+                tic;
+                %%% Run the unrestricted sampler to get samples, which will
+                %%% be used to approximate the Normal density in the
+                %%% evaluation of the term IV_j
+
+                omega_save = ...
+                    G_wishart_Hao_wang(S,n,burnin,nmc,delta, ...
+                    scale_matrix_this_order_reduced,  G_mat_adj_this_order_reduced, Matrix_2be_added_Gibbs,...
+                    start_point_first_gibbs);
+
+                post_mean_omega = mean(omega_save,3);
+                fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%% computing harmonic estimate when num_BGL = 1 or when the full
+                %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 temp_normal_log_likli_at_posterior_samples = zeros(1,nmc);
                 for post_sample = 1:nmc
                     temp_normal_log_likli_at_posterior_samples(post_sample) = ...
                         sum(log((mvnpdf(reduced_data_xx,0, inv(omega_save(:,:,post_sample))))));
                 end
-                
+
                 temp_numerical_1 = -temp_normal_log_likli_at_posterior_samples - ...
                     median(-temp_normal_log_likli_at_posterior_samples);
-                
+
                 mean_temp_numerical_1 = mean(exp(temp_numerical_1));
-                
+
                 Harmonic_mean_est(num_G_Wishart) = -median(-temp_normal_log_likli_at_posterior_samples) ...
                     -log(mean_temp_numerical_1);
-                
-                
+
+                HM_time(1,num_rand_orders) = toc;
             else
-                % do nothing
+                %%% Run the unrestricted sampler to get samples, which will
+                %%% be used to approximate the Normal density in the
+                %%% evaluation of the term IV_j
+
+                omega_save = ...
+                    G_wishart_Hao_wang(S,n,burnin,nmc,delta, ...
+                    scale_matrix_this_order_reduced,  G_mat_adj_this_order_reduced, Matrix_2be_added_Gibbs,...
+                    start_point_first_gibbs);
+
+                post_mean_omega = mean(omega_save,3);
+                fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
             end
+
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             column_number = q - num_G_Wishart + 1;
@@ -503,6 +517,7 @@ parfor num_rand_orders = 1:total_num_rand_orders
         
     end
     
+    our_time(1, num_rand_orders) = toc(tStart);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -521,6 +536,9 @@ std(temp_sum) %%% std of non-outliers log-marginal estimates (of our proposed pr
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 mean(Harmonic_mean_est_vec) %%% The mean of log marginal computed 
-%%%% for 100 different permutations
+%%%% for 25 different permutations
 std(Harmonic_mean_est_vec) %%% The std of log marginal computed 
-%%%% for 100 different permutations
+%%%% for 25 different permutations
+
+mean(our_time)
+mean(HM_time)

@@ -3,8 +3,8 @@
 
 rng(123456789)
 q = 5;
-n = 2*q;
-lambda = q/5;
+n = 10;
+lambda = 1;
 
 %%%% For setting the True_Omega, we run the prior sample 6e3 times with a
 %%%% burnin of 1e3 samples and then select the last sample the True_Omega
@@ -47,7 +47,7 @@ if q==2
     
     integral_part_log_marginal = log(mean(inverse_gauss_CDF_P1 + inverse_gauss_CDF_P2));
     
-    log_marginal = constant_part_log_marginal + integral_part_log_marginal;
+    log_marginal = -log(0.67) + constant_part_log_marginal + integral_part_log_marginal;
 else
     %%% do nothing
 end
@@ -74,8 +74,12 @@ Harmonic_mean_est_vec = zeros(1,total_num_rand_orders);
 burnin = 1e3;
 nmc = 5e3;
 
+our_time = zeros(1, total_num_rand_orders);
+HM_time = zeros(1, total_num_rand_orders);
 
 parfor num_rand_orders = 1:total_num_rand_orders    
+    
+    tStart = tic;
     try
         random_order = Matrix_of_random_orders(num_rand_orders,:);
         
@@ -105,42 +109,59 @@ parfor num_rand_orders = 1:total_num_rand_orders
                 
                 Matrix_2be_added_Gibbs = ...
                     Matrix_to_be_added(1:q_reduced, 1:q_reduced);
-                
-                %%% Run the unrestricted sampler to get samples, which will
-                %%% be used to approximate the Normal density in the
-                %%% evaluation of the term IV_j
-                
-                [omega_save, tau_save] = ...
-                    BGL_Hao_wang(S,n,burnin,nmc,lambda, Matrix_2be_added_Gibbs);
-                
-                post_mean_omega = mean(omega_save,3);
-                fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
-                
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%% computing harmonic estimate when num_BGL = 1 or when the full
-                %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                
+
                 if num_BGL == 1
+                    
+                    tic;
+
+                    %%% Run the unrestricted sampler to get samples, which will
+                    %%% be used to approximate the Normal density in the
+                    %%% evaluation of the term IV_j
+
+                    [omega_save, tau_save] = ...
+                        BGL_Hao_wang(S,n,burnin,nmc,lambda, Matrix_2be_added_Gibbs);
+
+                    post_mean_omega = mean(omega_save,3);
+                    fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
+
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%% computing harmonic estimate when num_BGL = 1 or when the full
+                    %%%%% data matrix is considered %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
                     temp_normal_log_likli_at_posterior_samples = zeros(1,nmc);
                     for post_sample = 1:nmc
+                        %fprintf("%d ", post_sample);
                         temp_normal_log_likli_at_posterior_samples(post_sample) = ...
                             sum(log((mvnpdf(reduced_data_xx,0, inv(omega_save(:,:,post_sample))))));
                     end
-                    
+
                     temp_numerical_1 = -temp_normal_log_likli_at_posterior_samples - ...
                         median(-temp_normal_log_likli_at_posterior_samples);
-                    
+
                     mean_temp_numerical_1 = mean(exp(temp_numerical_1));
-                    
+
                     Harmonic_mean_est = -median(-temp_normal_log_likli_at_posterior_samples) ...
                         -log(mean_temp_numerical_1);
-                    
+
                     Harmonic_mean_est_vec(num_rand_orders) = Harmonic_mean_est;
+
+                    HM_time(1, num_rand_orders) = toc;
                 else
-                    % do nothing
+
+                    %%% Run the unrestricted sampler to get samples, which will
+                    %%% be used to approximate the Normal density in the
+                    %%% evaluation of the term IV_j
+
+                    [omega_save, tau_save] = ...
+                        BGL_Hao_wang(S,n,burnin,nmc,lambda, Matrix_2be_added_Gibbs);
+
+                    post_mean_omega = mean(omega_save,3);
+                    fixed_last_col = post_mean_omega(1:(q_reduced-1),q_reduced);
+
                 end
-                
+
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                 column_number = q - num_BGL + 1;
@@ -207,6 +228,7 @@ parfor num_rand_orders = 1:total_num_rand_orders
                 
                 vec_log_gamma_density = ones(1,nmc);
                 vec_log_gamma_density = -Inf.*vec_log_gamma_density;
+
                 %%% We are starting with a vector of -Infinity because if the
                 %%% indicator condition is not met, then the likelihood is zero,
                 %%% and the log-likelihood is -Infinity
@@ -330,10 +352,21 @@ parfor num_rand_orders = 1:total_num_rand_orders
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%% Sum of all terms III is the expression below
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                
-                direct_eval_log_prior_density(1,num_rand_orders) = 0.5*(q*(q-1))*log(lambda/2)...
+                if q==2
+                    
+                    direct_eval_log_prior_density(1,num_rand_orders) = -log(0.67) + 0.5*(q*(q-1))*log(lambda/2)...
                     -(lambda)*sum(abs(Reconstructed_matrix(tril(true(size(Reconstructed_matrix)),-1)))) ...
                     + q*log(lambda/2) - (lambda/2)*sum(diag(Reconstructed_matrix));
+                    
+                else
+                    
+                    direct_eval_log_prior_density(1,num_rand_orders) = 0.5*(q*(q-1))*log(lambda/2)...
+                    -(lambda)*sum(abs(Reconstructed_matrix(tril(true(size(Reconstructed_matrix)),-1)))) ...
+                    + q*log(lambda/2) - (lambda/2)*sum(diag(Reconstructed_matrix));
+                
+                end
+                
+                
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
                 Matrix_of_log_ratio_likelihoods(num_rand_orders,:) = log_ratio_of_liklelihoods;
@@ -343,6 +376,7 @@ parfor num_rand_orders = 1:total_num_rand_orders
         fprintf("Move on to next random order: %d\n", num_rand_orders+1);
     end
     
+    our_time(1, num_rand_orders) = toc(tStart);
     
 end
 
@@ -354,15 +388,13 @@ else
     %%% print nothing 
 end
 
+temp_our_est = sum(Matrix_of_log_ratio_likelihoods,2) ;
+temp_our_est = temp_our_est(temp_our_est~=0);
+our_mean = mean(temp_our_est(temp_our_est~=Inf) + direct_eval_log_prior_density(temp_our_est~=Inf)') %#ok<NOPTS> 
+%%% Above is the the mean of log marginal computed for 25 different permutations
+our_sd = std(temp_our_est(temp_our_est~=Inf) + direct_eval_log_prior_density(temp_our_est~=Inf)') %#ok<NOPTS> 
+%%% Above is the the mean of log marginal computed for 25 different permutations
+
 temp_harmonic_vec = Harmonic_mean_est_vec(Harmonic_mean_est_vec~=0);
 mean(temp_harmonic_vec) %%% prints the mean of Harmonic estimate
 std(temp_harmonic_vec)  %%% prints the std of Harmonic estimate
-
-temp_our_est = sum(Matrix_of_log_ratio_likelihoods,2) ;
-temp_our_est = temp_our_est(temp_our_est~=0);
-mean(temp_our_est + direct_eval_log_prior_density(direct_eval_log_prior_density~=0)')
-%%% Above is the the mean of log marginal computed for 25 different permutations
-std(temp_our_est + direct_eval_log_prior_density(direct_eval_log_prior_density~=0)')
-%%% Above is the the mean of log marginal computed for 25 different permutations
-
-

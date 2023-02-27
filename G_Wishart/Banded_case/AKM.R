@@ -5,9 +5,9 @@ if(!require(BDgraph)){
 
 set.seed(123456789)
 
-q = 30
+q = 5
 n = 2*q;
-delta = 20
+delta = 2
 dof = 2*delta + 2 ## delta = (dof-2)/2 = 1
 banded_param = 1
 
@@ -29,16 +29,25 @@ AKM_final_estimate = rep(0,num_orders)
 AKM_estimate_prior = rep(0,num_orders)
 AKM_estimate_posterior = rep(0,num_orders)
 
+start_time = rep(0, num_orders)
+end_time = rep(0, num_orders)
+
+total_iter = 1.2e4
+
 for(order in 1:num_orders)
 {
   print(order)
+  start_time[order] = Sys.time()
   G_mat_ordered = G_mat[Matrix_of_random_orders[order,],Matrix_of_random_orders[order,]]
   S_mat_ordered = S_mat[Matrix_of_random_orders[order,],Matrix_of_random_orders[order,]]
   Scale_mat_ordered = Scale_mat[Matrix_of_random_orders[order,],Matrix_of_random_orders[order,]]
-  AKM_estimate_prior[order] = gnorm(adj = G_mat_ordered,b = dof,D = Scale_mat_ordered,iter = 1e5)
-  AKM_estimate_posterior[order] = gnorm(adj = G_mat_ordered,b = dof + n,D = Scale_mat_ordered + S_mat_ordered,iter = 1e5)
+  AKM_estimate_prior[order] = gnorm(adj = G_mat_ordered,b = dof,D = Scale_mat_ordered,iter = total_iter)
+  
+  AKM_estimate_posterior[order] = gnorm(adj = G_mat_ordered,b = dof + n,D = Scale_mat_ordered + S_mat_ordered,iter = total_iter)
   
   AKM_final_estimate[order]  = -(n*q/2)*log(2*pi) + AKM_estimate_posterior[order] - AKM_estimate_prior[order]
+  
+  end_time[order] = Sys.time()
 }
 
 ### Removing outliers 
@@ -46,3 +55,4 @@ temp_AKM_final_est = AKM_final_estimate[!AKM_final_estimate %in% boxplot.stats(A
 
 print(mean(temp_AKM_final_est))
 print(sd(temp_AKM_final_est))
+print(mean(end_time - start_time))

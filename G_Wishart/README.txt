@@ -9,7 +9,7 @@ This folder consists of files required to compute the log of marginal likelihood
 %%% True precision matrix is generated from the function call prior_sampling(q,100,100, G_mat_adj, scale_matrix, delta, 0).
 %%% n x q data matrix is generated and stored in the variable "xx" and sample covariance matrix, S = xx'*xx.
 %%% xx and S are stored in respective folders, which will be used to compute log-marginal from competing procedures.
-%%% set burnin and nmc (number of saved mc samples). Following this, 100 random permutations of 1:q are generated and stored in Matrix_of_rand_order.
+%%% set burnin and nmc (number of saved mc samples). Following this, 25 random permutations of 1:q are generated and stored in Matrix_of_rand_order.
 %%% log-marginal is computed in parallel for all the random permutations, using the parallel-for "parfor".
 %%% Function calls to "G_Wishart_Hao_wang.m", "G_Wishart_last_col_fixed.m" are made to run the required Gibbs samplers for the procedure.
 %%% Function calls to "logmvgamma.m" are made to compute the log of multivariate gamma function when required. 
@@ -21,7 +21,7 @@ This folder consists of files required to compute the log of marginal likelihood
 %%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
 %%% Reads the n x q data matrix, adjacency matrix and the scale matrix stored after data generation in G_Wishart_graphical_evidence.m
 %%% Function calls are made to "prior_sampling_for_Neal_and_skilling.m" to propose $\Omega$. 
-%%% log-marginal is estimated for 100 times in parallel, using the parallel-for "parfor".
+%%% log-marginal is estimated for 25 times in parallel, using the parallel-for "parfor".
 %%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
 
 
@@ -31,7 +31,7 @@ This folder consists of files required to compute the log of marginal likelihood
 %%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
 %%% Reads the n x q data matrix, adjacency matrix and the scale matrix stored after data generation in G_Wishart_graphical_evidence.m
 %%% Function calls are made to "prior_sampling_for_Neal_and_skilling.m" to propose $\Omega$. 
-%%% log-marginal is estimated for 100 times in parallel, using the parallel-for "parfor".
+%%% log-marginal is estimated for 25 times in parallel, using the parallel-for "parfor".
 %%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
 
 4. AKM.R
@@ -39,8 +39,8 @@ This folder consists of files required to compute the log of marginal likelihood
 ### Usage:
 %%% Requires the same problem dimensions and settings as specified in G_Wishart_graphical_evidence.m
 %%% Installs the R package "BDgraph" if the R package isn't installed. 
-%%% Reads the scale matrix, adjacency matrix, sample covariance matrix and the 100 random permutations stored after data generation in G_Wishart_graphical_evidence.m.
-%%% Function calls are made to "gnorm()", to compute the log-marginal for each of the 100 stored permutations. 
+%%% Reads the scale matrix, adjacency matrix, sample covariance matrix and the 25 random permutations stored after data generation in G_Wishart_graphical_evidence.m.
+%%% Function calls are made to "gnorm()", to compute the log-marginal for each of the 25 stored permutations. 
 %%% Mean and sd of the log-marginal estimates are printed at the end of computation. 
 
 ##########################################################################################################################################################################################################

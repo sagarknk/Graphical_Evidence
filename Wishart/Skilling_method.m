@@ -4,17 +4,20 @@
 %%% The n x p data matrix "xx" is the input to this procedure
 rng(123456789)
 q = 5;
-n = 2*q;
-alpha = q+ceil(0.3*q); 
+n = 10;
+alpha = 7; 
 
 xx= csvread(['./X_mat/X_mat_q_',num2str(q),'_n_',num2str(n),'_alpha_',num2str(alpha),'.csv']);
 scale_matrix = csvread(['./Scale_mat/Scale_mat_q_',num2str(q),'_n_',num2str(n),'_alpha_',num2str(alpha),'.csv']);
 
 log_marginal_skilling = zeros(1,25);
+time_taken = zeros(1,25);
 
-parfor skilling_iter = 1:25
+for skilling_iter = 1:25
 
+    tic;
     N = 5e3;
+    
     chol_factor = chol(scale_matrix);
     
     prior_samples = zeros(q,q,N);
@@ -37,6 +40,7 @@ parfor skilling_iter = 1:25
     N = length(likelihood_vector);
     
     J = 5e3;
+
     Z = 0;
     X =zeros(1,J+1);
     W = zeros(1,J);
@@ -80,8 +84,11 @@ parfor skilling_iter = 1:25
     
     log_marginal_skilling(1,skilling_iter) = log(Z);
     fprintf("%d skilling_iter is done\n", skilling_iter);
+    time_taken(1, skilling_iter) = toc;
 end
 
 
 mean(log_marginal_skilling) +(n/2)*log(det(scale_matrix)) %#ok<NOPTS>
 std(log_marginal_skilling)
+
+mean(time_taken)
