@@ -102,7 +102,7 @@ for iter = 1:(burnin+nmc)
         %%% This sampler is more efficient and stable in data generation
         %%% for dimensions p>30. So, while computing marginal likelihood
         %%% for dimensions p>30, comment lines 76--99 and uncomment lines
-        %%% 107--112
+        %%% 107--113
 
 %         a_gig_tau = lambda_prime./(mu_prime.^2);
 %         b_gig_tau = lambda_prime;
